@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ders Programım</title>
+<style>
+  :root{--bg:#050805;--card:#0c140c;--line:#1b2e1b;--g:#2cff6b;--g2:#18a84a;--txt:#d6ffe0;--mut:#6f9a7b}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);font-family:system-ui,sans-serif;min-height:100vh;
+    background-image:radial-gradient(circle at 50% -10%,#0f2a14 0,transparent 55%)}
+  .wrap{max-width:820px;margin:0 auto;padding:16px}
+  h1{color:var(--g);text-shadow:0 0 12px #2cff6b66;margin:8px 0 4px;font-size:1.7rem}
+  .sub{color:var(--mut);margin-bottom:14px}
+  .bar{height:10px;background:#0a120a;border:1px solid var(--line);border-radius:6px;overflow:hidden;margin:6px 0 16px}
+  .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--g2),var(--g));transition:width .3s;box-shadow:0 0 10px var(--g)}
+  form{display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:8px;background:var(--card);border:1px solid var(--line);padding:12px;border-radius:10px}
+  input,select{background:#050a05;color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:10px;font-size:1rem;min-width:0}
+  input:focus,select:focus{outline:none;border-color:var(--g);box-shadow:0 0 6px #2cff6b55}
+  button{background:var(--g);color:#031004;border:0;border-radius:6px;padding:10px 16px;font-weight:700;cursor:pointer}
+  button:hover{box-shadow:0 0 12px var(--g)}
+  .day{margin-top:18px}
+  .day h2{color:var(--g);font-size:1.05rem;margin:0 0 8px;border-bottom:1px solid var(--line);padding-bottom:4px;letter-spacing:1px}
+  .item{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:6px}
+  .item input[type=checkbox]{width:22px;height:22px;accent-color:var(--g);flex:none;cursor:pointer}
+  .item .t{color:var(--g);font-family:monospace;min-width:92px}
+  .item .n{flex:1}.item .n small{display:block;color:var(--mut)}
+  .item.done{opacity:.5}.item.done .n b{text-decoration:line-through;color:var(--mut)}
+  .del{background:transparent;color:var(--mut);border:1px solid var(--line);padding:4px 9px}
+  .del:hover{color:#ff5b5b;border-color:#ff5b5b;box-shadow:none}
+  .empty{text-align:center;color:var(--mut);margin-top:40px}
+  @media(max-width:640px){form{grid-template-columns:1fr 1fr}form button{grid-column:1/-1}.item .t{min-width:80px;font-size:.85rem}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>&gt; Ders Programım_</h1>
+  <div class="sub" id="sub"></div>
+  <div class="bar"><i id="bar"></i></div>
+  <form id="f">
+    <input id="ders" placeholder="Ders adı" required>
+    <select id="gun"></select>
+    <input id="bas" type="time" value="09:00" required>
+    <input id="bit" type="time" value="09:50" required>
+    <button>Ekle</button>
+    <input id="yer" placeholder="Sınıf / hoca (isteğe bağlı)" style="grid-column:1/-1">
+  </form>
+  <div id="list"></div>
+</div>
+<script>
+const GUNLER=["Pazartesi","Salı","Çarşamba","Perşembe","Cuma","Cumartesi","Pazar"];
+const $=id=>document.getElementById(id);
+let data=[];
+try{data=JSON.parse(localStorage.getItem("ders")||"[]")}catch(e){}
+const save=()=>{try{localStorage.setItem("ders",JSON.stringify(data))}catch(e){}};
+GUNLER.forEach((g,i)=>$("gun").add(new Option(g,i)));
+$("gun").value=(new Date().getDay()+6)%7;
+
+$("f").onsubmit=e=>{
+  e.preventDefault();
+  data.push({id:Date.now(),ders:$("ders").value.trim(),gun:+$("gun").value,bas:$("bas").value,bit:$("bit").value,yer:$("yer").value.trim(),done:false});
+  $("ders").value="";$("yer").value="";save();render();
+};
+
+function render(){
+  const L=$("list");L.innerHTML="";
+  const done=data.filter(d=>d.done).length;
+  $("sub").textContent=`${done} / ${data.length} ders işaretlendi`;
+  $("bar").style.width=data.length?done/data.length*100+"%":"0";
+  if(!data.length){L.innerHTML='<div class="empty">Henüz ders yok. Yukarıdan ekle.</div>';return}
+  GUNLER.forEach((g,gi)=>{
+    const items=data.filter(d=>d.gun===gi).sort((a,b)=>a.bas.localeCompare(b.bas));
+    if(!items.length)return;
+    const s=document.createElement("div");s.className="day";
+    s.innerHTML=`<h2>${g.toUpperCase()}</h2>`;
+    items.forEach(d=>{
+      const r=document.createElement("div");r.className="item"+(d.done?" done":"");
+      const c=document.createElement("input");c.type="checkbox";c.checked=d.done;
+      c.onchange=()=>{d.done=c.checked;save();render()};
+      const t=document.createElement("span");t.className="t";t.textContent=d.bas+" - "+d.bit;
+      const n=document.createElement("div");n.className="n";
+      const b=document.createElement("b");b.textContent=d.ders;n.append(b);
+      if(d.yer){const sm=document.createElement("small");sm.textContent=d.yer;n.append(sm)}
+      const x=document.createElement("button");x.className="del";x.textContent="✕";
+      x.onclick=()=>{data=data.filter(z=>z.id!==d.id);save();render()};
+      r.append(c,t,n,x);s.append(r);
+    });
+    L.append(s);
+  });
+}
+render();
+</script>
+</body>
+</html>
